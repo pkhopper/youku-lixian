@@ -325,8 +325,10 @@ class DownloadThread:
         self.thread = threading.Thread(target=self._run)
         self.join = self.thread.join
         self.thread.start()
-
     def _run(self,*_args, **_kwargs):
+        if os.path.isfile(self.filepath):
+            print "[Already done] ", self.filepath
+            return
         url_save(self.url, self.filepath+"!", self.bar, self.refer)
         os.rename(self.filepath+"!", self.filepath)
 
