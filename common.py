@@ -3,6 +3,7 @@ import urllib2
 import os.path
 import sys
 import re
+import threading
 
 default_encoding = sys.getfilesystemencoding()
 if default_encoding.lower() == 'ascii':
@@ -122,7 +123,9 @@ class SimpleProgressBar:
         self.total_pieces = total_pieces
         self.current_piece = 1
         self.received = 0
+        self.lock = threading.RLock()
     def update(self):
+        self.lock.acquire()
         self.displayed = True
         bar_size = 40
         percent = self.received*100.0/self.total_size
@@ -142,15 +145,22 @@ class SimpleProgressBar:
         bar = '{0:>3.0f}% [{1:<40}] {2}/{3}'.format(percent, bar, self.current_piece, self.total_pieces)
         sys.stdout.write('\r'+bar)
         sys.stdout.flush()
+        self.lock.release()
     def update_received(self, n):
+        self.lock.acquire()
         self.received += n
         self.update()
+        self.lock.release()
     def update_piece(self, n):
+        self.lock.acquire()
         self.current_piece = n
+        self.lock.release()
     def done(self):
+        self.lock.acquire()
         if self.displayed:
             print
             self.displayed = False
+        self.lock.release()
 
 class PiecesProgressBar:
     def __init__(self, total_size, total_pieces=1):
@@ -159,20 +169,29 @@ class PiecesProgressBar:
         self.total_pieces = total_pieces
         self.current_piece = 1
         self.received = 0
+        self.lock = threading.RLock()
     def update(self):
+        self.lock.acquire()
         self.displayed = True
         bar = '{0:>3}%[{1:<40}] {2}/{3}'.format('?', '?'*40, self.current_piece, self.total_pieces)
         sys.stdout.write('\r'+bar)
         sys.stdout.flush()
+        self.lock.release()
     def update_received(self, n):
+        self.lock.acquire()
         self.received += n
         self.update()
+        self.lock.release()
     def update_piece(self, n):
+        self.lock.acquire()
         self.current_piece = n
+        self.lock.release()
     def done(self):
+        self.lock.acquire()
         if self.displayed:
             print
             self.displayed = False
+        self.lock.release()
 
 class DummyProgressBar:
     def __init__(self, *args):
@@ -220,6 +239,7 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
         bar.done()
     else:
         flvs = []
+        multithread = []
         print 'Downloading %s.%s ...' % (title, ext)
         for i, url in enumerate(urls):
             filename = '%s[%02d].%s' % (title, i, ext)
@@ -227,8 +247,14 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
             flvs.append(filepath)
             #print 'Downloading %s [%s/%s]...' % (filename, i+1, len(urls))
             bar.update_piece(i+1)
-            url_save(url, filepath, bar, refer=refer)
+            if False:
+                url_save(url, filepath, bar, refer=refer)
+            else:
+                multithread.append(DownloadThread(url, filepath, bar, refer))
+        for t in multithread:
+            t.join()
         bar.done()
+        print "Merge?", merge
         if not merge:
             return
         if ext == 'flv':
@@ -289,4 +315,19 @@ def script_main(script_name, download, download_playlist=None):
             download_playlist(url, create_dir=create_dir, merge=merge)
         else:
             download(url, merge=merge)
+
+class DownloadThread:
+    def __init__(self, url, filepath, bar, refer=None):
+        self.url = url
+        self.filepath = filepath
+        self.bar = bar
+        self.refer = refer
+        self.thread = threading.Thread(target=self._run)
+        self.join = self.thread.join
+        self.thread.start()
+
+    def _run(self,*_args, **_kwargs):
+        url_save(self.url, self.filepath+"!", self.bar, self.refer)
+        os.rename(self.filepath+"!", self.filepath)
+
 
