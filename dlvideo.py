@@ -20,7 +20,10 @@ def downloads(fp, output_dir='/Users/pk/download/'):
     else:
         title = "%s-%s"%(time.strftime("%Y%m%d%H%M%S", time.localtime()), fp)
     output_dir = os.path.join(output_dir, title)
+    if output_dir.endswith('.m3u'):
+        output_dir = output_dir[:-4]
     if not os.path.isdir(output_dir):
+        print output_dir
         os.mkdir(output_dir)
 
     ext = 'flv'
@@ -29,16 +32,5 @@ def downloads(fp, output_dir='/Users/pk/download/'):
 
     size = 1024*1024*100
     merge = True
-    # title = title + '.' + ext
     download_urls(urls, title, ext, total_size=size,
                   output_dir=output_dir, refer=urls[0], merge=merge)
-
-def merge_files(files, out=None, ext=None):
-    if ext is None:
-        ext = files[0][:4]
-    for file in files:
-        assert file.endswith(ext)
-
-if __name__ == '__main__':
-    downloads('/Users/pk/download/urls')
-

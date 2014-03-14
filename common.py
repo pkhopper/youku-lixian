@@ -234,9 +234,10 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
         bar = PiecesProgressBar(total_size, len(urls))
     if len(urls) == 1:
         url = urls[0]
-        print 'Downloading %s ...' % filename
-        url_save(url, filepath, bar, refer=refer)
-        bar.done()
+        Wget().get(url, filepath, referer=refer)
+        # print 'Downloading %s ...' % filename
+        # url_save(url, filepath, bar, refer=refer)
+        # bar.done()
     else:
         flvs = []
         multithread = []
@@ -245,13 +246,9 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
             filename = '%s[%02d].%s' % (title, i, ext)
             filepath = os.path.join(output_dir, filename)
             flvs.append(filepath)
-            #print 'Downloading %s [%s/%s]...' % (filename, i+1, len(urls))
             bar.update_piece(i+1)
-            if False:
-                url_save(url, filepath, bar, refer=refer)
-            else:
-                print "[url] ", url
-                multithread.append(DownloadThread(url, filepath, bar, refer))
+            print "[url] ", url
+            multithread.append(DownloadThread(url, filepath, bar, refer))
         for t in multithread:
             t.join()
         bar.done()
@@ -332,5 +329,21 @@ class DownloadThread:
             return
         url_save(self.url, self.filepath+"!", self.bar, self.refer)
         os.rename(self.filepath+"!", self.filepath)
+
+class Wget:
+    def __init__(self):
+        reload(sys)
+        sys.setdefaultencoding('utf-8')
+        self.useragent = r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36'
+    def get(self, url, out, referer=None):
+        cmd = "wget --user-agent='%s'"%(self.useragent)
+        if referer:
+            cmd += " --referer='%s'"%(referer)
+        if out:
+            cmd += " --output-document='%s'"%(out)
+        cmd += " '%s'"%(url)
+        print cmd
+        import os
+        os.system(cmd)
 
 
