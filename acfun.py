@@ -44,6 +44,7 @@ def acfun_download(url, merge=True):
 	title = title.replace(' - AcFun.tv', '')
 
 	id = r1(r"\[[Vv]ideo\](\d+)\[/[Vv]ideo\]", html)
+	id = r1(r"system.aid = '([^\'\"]*)'", html)
 	if id:
 		return acfun_download_by_id(id, title, merge=merge)
 	id = r1(r'<embed [^<>]* (?:src|flashvars)="[^"]+id=(\d+)[^"]+"', html)

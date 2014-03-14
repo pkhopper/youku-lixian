@@ -15,8 +15,8 @@ def to_native_string(s):
     else:
         return s
 
-def r1(pattern, text):
-    m = re.search(pattern, text)
+def r1(pattern, text, flag=0):
+    m = re.search(pattern, text, flag)
     if m:
         return m.group(1)
 
@@ -63,8 +63,8 @@ def get_html(url, encoding=None, headers={}):
         content = content.decode(encoding)
     return content
 
-def get_decoded_html(url):
-    response = get_response(url)
+def get_decoded_html(url, headers={}):
+    response = get_response(url, headers)
     data = response.data
     charset = r1(r'charset=([\w-]+)', response.headers['content-type'])
     if charset:
@@ -250,6 +250,7 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
             if False:
                 url_save(url, filepath, bar, refer=refer)
             else:
+                print "[url] ", url
                 multithread.append(DownloadThread(url, filepath, bar, refer))
         for t in multithread:
             t.join()
