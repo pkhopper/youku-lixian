@@ -234,7 +234,12 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
         bar = PiecesProgressBar(total_size, len(urls))
     if len(urls) == 1:
         url = urls[0]
-        Wget().get(url, filepath, referer=refer)
+        # 3 methods to download url
+        # 1:
+        # Wget().get(url, filepath, referer=refer)
+        # 2:
+        Axel().get(url, filepath, n=10, referer=refer)
+        # 3
         # print 'Downloading %s ...' % filename
         # url_save(url, filepath, bar, refer=refer)
         # bar.done()
@@ -267,6 +272,7 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
                 os.remove(flv)
         else:
             print "Can't join %s files" % ext
+            os.system('say "Can\'t join %s files"' % ext)
 
 def playlist_not_supported(name):
     def f(*args, **kwargs):
@@ -327,7 +333,8 @@ class DownloadThread:
         if os.path.isfile(self.filepath):
             print "[Already done] ", self.filepath
             return
-        url_save(self.url, self.filepath+"!", self.bar, self.refer)
+        # url_save(self.url, self.filepath+"!", self.bar, self.refer)
+        Wget().get(self.url, self.filepath+"!", referer=self.refer)
         os.rename(self.filepath+"!", self.filepath)
 
 class Wget:
@@ -336,7 +343,7 @@ class Wget:
         sys.setdefaultencoding('utf-8')
         self.useragent = r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36'
     def get(self, url, out, referer=None):
-        cmd = "wget --user-agent='%s'"%(self.useragent)
+        cmd = "wget -c --user-agent='%s'"%(self.useragent)
         if referer:
             cmd += " --referer='%s'"%(referer)
         if out:
@@ -347,3 +354,34 @@ class Wget:
         os.system(cmd)
 
 
+class Axel:
+    def __init__(self):
+        reload(sys)
+        sys.setdefaultencoding('utf-8')
+        self.useragent = r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36'
+    def get(self, url, out, n=None, referer=None):
+        cmd = "axel -v -a -U '%s'"%(self.useragent)
+        if referer:
+            cmd += " -H 'Referer:%s'"%(referer)
+        if n:
+            cmd += " -n %d"%(n)
+        if out:
+            cmd += " -o '%s'"%(out)
+        cmd += " '%s'"%(url)
+        print cmd
+        import os
+        os.system(cmd)
+
+    def gets(self, urls, out, n=None, referer=None):
+        cmd = "axel -U '%s'"%(self.useragent)
+        if referer:
+            cmd += " -H 'Referer:%s'"%(referer)
+        if n:
+            cmd += " -n %d"%(n)
+        if out:
+            cmd += " -o '%s'"%(out)
+        for url in urls:
+            cmd += " '%s'"%(url)
+        print cmd
+        import os
+        os.system(cmd)
