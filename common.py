@@ -244,32 +244,35 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
         # url_save(url, filepath, bar, refer=refer)
         # bar.done()
     else:
-        flvs = []
+        files = []
         multithread = []
         print 'Downloading %s.%s ...' % (title, ext)
+        tmp_path = os.path.join(output_dir, '.dlvideo')
+        if not os.path.isdir(tmp_path):
+            os.mkdir(tmp_path)
         for i, url in enumerate(urls):
             filename = '%s[%02d].%s' % (title, i, ext)
-            filepath = os.path.join(output_dir, filename)
-            flvs.append(filepath)
+            filepath = os.path.join(tmp_path, filename)
+            files.append(filepath)
             bar.update_piece(i+1)
             print "[url] ", url
             multithread.append(DownloadThread(url, filepath, bar, refer))
         for t in multithread:
             t.join()
         bar.done()
-        print "Merge?", merge
         if not merge:
+            print "not Merge?"
             return
         if ext == 'flv':
             from flv_join import concat_flvs
-            concat_flvs(flvs, os.path.join(output_dir, title+'.flv'))
-            for flv in flvs:
-                os.remove(flv)
+            concat_flvs(files, os.path.join(output_dir, title+'.flv'))
+            for f in files:
+                os.remove(f)
         elif ext == 'mp4':
             from mp4_join import concat_mp4s
-            concat_mp4s(flvs, os.path.join(output_dir, title+'.mp4'))
-            for flv in flvs:
-                os.remove(flv)
+            concat_mp4s(files, os.path.join(output_dir, title+'.mp4'))
+            for f in files:
+                os.remove(f)
         else:
             print "Can't join %s files" % ext
             os.system('say "Can\'t join %s files"' % ext)
@@ -333,8 +336,12 @@ class DownloadThread:
         if os.path.isfile(self.filepath):
             print "[Already done] ", self.filepath
             return
+        # 1:
         # url_save(self.url, self.filepath+"!", self.bar, self.refer)
-        Wget().get(self.url, self.filepath+"!", referer=self.refer)
+        # 2:
+        # Wget().get(self.url, self.filepath+"!", referer=self.refer)
+        # 3:
+        Axel().get(url=self.url, out=self.filepath+"!", n=10, referer=self.refer)
         os.rename(self.filepath+"!", self.filepath)
 
 class Wget:
@@ -342,7 +349,7 @@ class Wget:
         reload(sys)
         sys.setdefaultencoding('utf-8')
         self.useragent = r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36'
-    def get(self, url, out, referer=None):
+    def get(self, url, out=None, referer=None):
         cmd = "wget -c --user-agent='%s'"%(self.useragent)
         if referer:
             cmd += " --referer='%s'"%(referer)
@@ -359,7 +366,8 @@ class Axel:
         reload(sys)
         sys.setdefaultencoding('utf-8')
         self.useragent = r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36'
-    def get(self, url, out, n=None, referer=None):
+
+    def get(self, url, out=None, n=None, referer=None):
         cmd = "axel -v -a -U '%s'"%(self.useragent)
         if referer:
             cmd += " -H 'Referer:%s'"%(referer)
@@ -372,8 +380,8 @@ class Axel:
         import os
         os.system(cmd)
 
-    def gets(self, urls, out, n=None, referer=None):
-        cmd = "axel -U '%s'"%(self.useragent)
+    def gets(self, urls, out=None, n=None, referer=None):
+        cmd = "axel -v -a -U '%s'"%(self.useragent)
         if referer:
             cmd += " -H 'Referer:%s'"%(referer)
         if n:
@@ -385,3 +393,15 @@ class Axel:
         print cmd
         import os
         os.system(cmd)
+
+if __name__ == '__main__':
+    url = 'http://localhost/w/123.flv'
+    threads = [
+        DownloadThread(url, '/Users/pk/download/test/1', None),
+        DownloadThread(url, '/Users/pk/download/test/2', None),
+        DownloadThread(url, '/Users/pk/download/test/3', None),
+        DownloadThread(url, '/Users/pk/download/test/4', None)
+    ]
+    for t in threads:
+        t.join()
+    print 'ok'
