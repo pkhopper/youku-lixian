@@ -210,6 +210,17 @@ def escape_file_path(path):
     path = path.replace('?', '-')
     return path
 
+def _dl_methods(url, filepath, refer):
+    # 3 methods to download url
+    # 1:
+    # Wget().get(url, filepath, referer=refer)
+    # 2:
+    Axel().get(url, filepath, n=10, referer=refer)
+    # 3
+    # print 'Downloading %s ...' % filename
+    # url_save(url, filepath, bar, refer=refer)
+    # bar.done()
+
 def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merge=True):
     assert urls
     assert ext in ('flv', 'mp4')
@@ -233,16 +244,8 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
     else:
         bar = PiecesProgressBar(total_size, len(urls))
     if len(urls) == 1:
-        url = urls[0]
-        # 3 methods to download url
-        # 1:
-        # Wget().get(url, filepath, referer=refer)
-        # 2:
-        Axel().get(url, filepath, n=10, referer=refer)
-        # 3
-        # print 'Downloading %s ...' % filename
-        # url_save(url, filepath, bar, refer=refer)
-        # bar.done()
+        _dl_methods(urls[0], filepath+"!", refer)
+        os.rename(filepath+"!", filepath)
     else:
         files = []
         multithread = []
@@ -336,12 +339,7 @@ class DownloadThread:
         if os.path.isfile(self.filepath):
             print "[Already done] ", self.filepath
             return
-        # 1:
-        # url_save(self.url, self.filepath+"!", self.bar, self.refer)
-        # 2:
-        # Wget().get(self.url, self.filepath+"!", referer=self.refer)
-        # 3:
-        Axel().get(url=self.url, out=self.filepath+"!", n=10, referer=self.refer)
+        _dl_methods(self.url, self.filepath+"!", self.refer)
         os.rename(self.filepath+"!", self.filepath)
 
 class Wget:
