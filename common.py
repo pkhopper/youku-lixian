@@ -210,18 +210,21 @@ def escape_file_path(path):
     path = path.replace('?', '-')
     return path
 
-def _dl_methods(url, filepath, refer):
+def _dl_methods(url, filepath, n=10, refer=None):
     # 3 methods to download url
-    # 1:
-    # Wget().get(url, filepath, referer=refer)
-    # 2:
-    Axel().get(url, filepath, n=10, referer=refer)
+    if n == 1:
+        # 1:
+        Wget().get(url, filepath, referer=refer)
+    else:
+        # 2:
+        Axel().get(url, filepath, n=n, referer=refer)
     # 3
     # print 'Downloading %s ...' % filename
     # url_save(url, filepath, bar, refer=refer)
     # bar.done()
 
-def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merge=True):
+def download_urls(urls, title, ext, total_size, n=10,
+                  output_dir='.', refer=None, merge=True):
     assert urls
     assert ext in ('flv', 'mp4')
     if not total_size:
@@ -237,14 +240,15 @@ def download_urls(urls, title, ext, total_size, output_dir='.', refer=None, merg
     filename = '%s.%s' % (title, ext)
     filepath = os.path.join(output_dir, filename)
     if total_size:
-        if os.path.exists(filepath) and os.path.getsize(filepath) >= total_size * 0.9:
+        if os.path.exists(filepath) \
+                and os.path.getsize(filepath) >= total_size * 0.9:
             print 'Skip %s: file already exists' % filepath
             return
         bar = SimpleProgressBar(total_size, len(urls))
     else:
         bar = PiecesProgressBar(total_size, len(urls))
     if len(urls) == 1:
-        _dl_methods(urls[0], filepath+"!", refer)
+        _dl_methods(urls[0], filepath+"!", n, refer)
         os.rename(filepath+"!", filepath)
     else:
         files = []
