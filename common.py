@@ -289,7 +289,7 @@ def playlist_not_supported(name):
         raise NotImplementedError('Play list is not supported for '+name)
     return f
 
-def script_main(script_name, download, download_playlist=None):
+def script_main(script_name, download, download_playlist=None, format=1):
     if download_playlist:
         help = 'python %s.py [--playlist] [-c|--create-dir] [--no-merge] url ...' % script_name
         short_opts = 'hc'
