@@ -72,7 +72,7 @@ def get_decoded_html(url, headers={}):
     else:
         return data
 
-def url_save(url, filepath, bar, refer=None):
+def url_save(url, file_path, bar, refer=None):
     headers = {}
     if refer:
         headers['Referer'] = refer
@@ -80,17 +80,17 @@ def url_save(url, filepath, bar, refer=None):
     response = urllib2.urlopen(request)
     file_size = int(response.headers['content-length'])
     assert file_size
-    if os.path.exists(filepath):
-        if file_size == os.path.getsize(filepath):
+    if os.path.exists(file_path):
+        if file_size == os.path.getsize(file_path):
             if bar:
                 bar.done()
-            print 'Skip %s: file already exists' % os.path.basename(filepath)
+            print 'Skip %s: file already exists' % os.path.basename(file_path)
             return
         else:
             if bar:
                 bar.done()
-            print 'Overwriting', os.path.basename(filepath), '...'
-    with open(filepath, 'wb') as output:
+            print 'Overwriting', os.path.basename(file_path), '...'
+    with open(file_path, 'wb') as output:
         received = 0
         while True:
             buffer = response.read(1024*256)
@@ -100,7 +100,7 @@ def url_save(url, filepath, bar, refer=None):
             output.write(buffer)
             if bar:
                 bar.update_received(len(buffer))
-    assert received == file_size == os.path.getsize(filepath), '%s == %s == %s' % (received, file_size, os.path.getsize(filepath))
+    assert received == file_size == os.path.getsize(file_path), '%s == %s == %s' % (received, file_size, os.path.getsize(file_path))
 
 def url_size(url):
     request = urllib2.Request(url)
@@ -210,17 +210,17 @@ def escape_file_path(path):
     path = path.replace('?', '-')
     return path
 
-def _dl_methods(url, filepath, n=10, refer=None):
+def _dl_methods(url, file_path, n_per_file=10, refer=None):
     # 3 methods to download url
-    if n == 1:
+    if n_per_file == 1:
         # 1:
-        Wget().get(url, filepath, referer=refer)
+        Wget().get(url, out=file_path, referer=refer)
     else:
         # 2:
-        Axel().get(url, filepath, n=n, referer=refer)
+        Axel().get(url=url, out=file_path, n=n_per_file, referer=refer)
     # 3
     # print 'Downloading %s ...' % filename
-    # url_save(url, filepath, bar, refer=refer)
+    # url_save(url, file_path, bar, refer=refer)
     # bar.done()
 
 def download_urls(urls, title, ext, total_size, n=10,
@@ -238,18 +238,18 @@ def download_urls(urls, title, ext, total_size, n=10,
     title = to_native_string(title)
     title = escape_file_path(title)
     filename = '%s.%s' % (title, ext)
-    filepath = os.path.join(output_dir, filename)
+    file_path = os.path.join(output_dir, filename)
     if total_size:
-        if os.path.exists(filepath) \
-                and os.path.getsize(filepath) >= total_size * 0.9:
-            print 'Skip %s: file already exists' % filepath
+        if os.path.exists(file_path) \
+                and os.path.getsize(file_path) >= total_size * 0.9:
+            print 'Skip %s: file already exists' % file_path
             return
         bar = SimpleProgressBar(total_size, len(urls))
     else:
         bar = PiecesProgressBar(total_size, len(urls))
     if len(urls) == 1:
-        _dl_methods(urls[0], filepath+"!", n, refer)
-        os.rename(filepath+"!", filepath)
+        _dl_methods(url=urls[0], out=file_path+"!", n_per_file=n, refer=refer)
+        os.rename(file_path+"!", file_path)
     else:
         files = []
         multithread = []
@@ -259,11 +259,11 @@ def download_urls(urls, title, ext, total_size, n=10,
             os.mkdir(tmp_path)
         for i, url in enumerate(urls):
             filename = '%s[%02d].%s' % (title, i, ext)
-            filepath = os.path.join(tmp_path, filename)
-            files.append(filepath)
+            file_path = os.path.join(tmp_path, filename)
+            files.append(file_path)
             bar.update_piece(i+1)
             print "[url] ", url
-            multithread.append(DownloadThread(url, filepath, bar, refer))
+            multithread.append(DownloadThread(url, file_path, bar, refer))
         for t in multithread:
             t.join()
         bar.done()
@@ -331,20 +331,21 @@ def script_main(script_name, download, download_playlist=None):
             download(url, merge=merge)
 
 class DownloadThread:
-    def __init__(self, url, filepath, bar, refer=None):
+    def __init__(self, url, file_path, bar, refer=None):
         self.url = url
-        self.filepath = filepath
+        self.file_path = file_path
         self.bar = bar
         self.refer = refer
         self.thread = threading.Thread(target=self._run)
         self.join = self.thread.join
         self.thread.start()
     def _run(self,*_args, **_kwargs):
-        if os.path.isfile(self.filepath):
-            print "[Already done] ", self.filepath
+        if os.path.isfile(self.file_path):
+            print "[Already done] ", self.file_path
             return
-        _dl_methods(self.url, self.filepath+"!", self.refer)
-        os.rename(self.filepath+"!", self.filepath)
+        _dl_methods(url=self.url, file_path=self.file_path+"!",
+                    n_per_file=10, refer=self.refer)
+        os.rename(self.file_path+"!", self.file_path)
 
 class Wget:
     def __init__(self):
@@ -369,7 +370,7 @@ class Axel:
         sys.setdefaultencoding('utf-8')
         self.useragent = r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36'
 
-    def get(self, url, out=None, n=None, referer=None):
+    def get(self, url, out=None, n=10, referer=None):
         cmd = "axel -v -a -U '%s'"%(self.useragent)
         if referer:
             cmd += " -H 'Referer:%s'"%(referer)
