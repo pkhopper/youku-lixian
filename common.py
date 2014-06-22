@@ -248,7 +248,7 @@ def download_urls(urls, title, ext, total_size, n=10,
     else:
         bar = PiecesProgressBar(total_size, len(urls))
     if len(urls) == 1:
-        _dl_methods(url=urls[0], out=file_path+"!", n_per_file=n, refer=refer)
+        _dl_methods(url=urls[0], file_path=file_path+"!", n_per_file=n, refer=refer)
         os.rename(file_path+"!", file_path)
     else:
         files = []
