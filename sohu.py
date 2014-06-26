@@ -13,9 +13,13 @@ def real_url(host, prot, file, new):
 
 def sohu_download(url, merge=True, format=None):
     f = ["norVid", "highVid", "superVid", "oriVid"]
-    format = url.split('#')[1]
-    url = url.split('#')[0]
-    vid = r1('vid="(\d+)"', get_html(url))
+    if url.find('#') > 0:
+        format = url.split('#')[1]
+        url = url.split('#')[0]
+    vid_page = get_html(url)
+    vid = r1('vid="(\d+)"', vid_page)
+    if not vid:
+        vid = r1('vid:\s*\'(\d+)\'', vid_page)
     assert vid
     import json
     data = json.loads(get_decoded_html('http://hot.vrs.sohu.com/vrs_flash.action?vid=%s' % vid))
